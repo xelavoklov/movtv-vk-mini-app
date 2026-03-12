@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # VK
     VK_APP_SECRET: str = ""
+    VK_SERVICE_TOKEN: str = ""
+    VK_API_VERSION: str = "5.199"
 
     # JWT
     JWT_SECRET: str = "change_me"

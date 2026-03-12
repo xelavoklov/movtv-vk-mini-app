@@ -4,6 +4,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
 class VKAuthRequest(BaseModel):
     """Raw query string from VK Mini App launch params."""
     launch_params: str
@@ -23,6 +25,8 @@ class TokenResponse(BaseModel):
     photo_100: Optional[str] = None
     is_admin: bool = False
 
+
+# ── User ──────────────────────────────────────────────────────────────────────
 
 class UserOut(BaseModel):
     id: int

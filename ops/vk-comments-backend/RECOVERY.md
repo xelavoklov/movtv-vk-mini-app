@@ -24,6 +24,7 @@ curl http://localhost:8000/healthz
 ## Что нужно заполнить в `.env`
 - `POSTGRES_PASSWORD`
 - `VK_APP_SECRET`
+- `VK_SERVICE_TOKEN`
 - `JWT_SECRET`
 - при необходимости `CORS_ORIGINS`
 
@@ -48,3 +49,5 @@ curl http://localhost:8000/healthz
 - дамп базы Postgres
 
 Если нужна полная disaster recovery без потери комментариев, следующим шагом нужно добавить регулярный backup Postgres в отдельное хранилище.
+
+См. также [ops/vk-comments-backend/BACKUP.md](ops/vk-comments-backend/BACKUP.md).
