@@ -1,4 +1,4 @@
-const CHANNEL_URL = '/channel.json';
+const CHANNEL_URL = 'channel.json';
 const MEDIA_BASE_URL = 'https://xelavoklov.github.io/movtv/media';
 
 const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)$/i;
