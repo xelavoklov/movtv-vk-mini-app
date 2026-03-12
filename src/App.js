@@ -8,6 +8,7 @@ import { fetchChannelPosts } from './utils/channel';
 import {
   authenticateCommentsUser,
   clearCommentsAuth,
+  getBridgeLaunchParamsString,
   getLaunchParamsString,
   loadStoredCommentsAuth,
   storeCommentsAuth,
@@ -59,7 +60,7 @@ export const App = () => {
     let isMounted = true;
 
     async function loadCommentsAuth() {
-      const launchParams = getLaunchParamsString();
+      const launchParams = (await getBridgeLaunchParamsString()) || getLaunchParamsString();
       const storedAuth = loadStoredCommentsAuth();
 
       if (!launchParams) {

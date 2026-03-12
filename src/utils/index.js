@@ -4,6 +4,7 @@ export {
 	clearCommentsAuth,
 	createComment,
 	fetchComments,
+	getBridgeLaunchParamsString,
 	getLaunchParamsString,
 	likeComment,
 	loadStoredCommentsAuth,

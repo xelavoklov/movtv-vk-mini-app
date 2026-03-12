@@ -1,5 +1,23 @@
+import vkBridge from '@vkontakte/vk-bridge';
+
 const COMMENTS_API_BASE_URL = import.meta.env.VITE_COMMENTS_API_URL || 'https://movtv.fun/api/v1';
 const COMMENTS_AUTH_STORAGE_KEY = 'movtv-comments-auth';
+
+function normalizeLaunchParamsObject(rawParams) {
+  return Object.entries(rawParams || {}).reduce((result, [key, value]) => {
+    if (typeof value === 'undefined' || value === null) {
+      return result;
+    }
+
+    result[key] = String(value);
+    return result;
+  }, {});
+}
+
+function stringifyLaunchParams(rawParams) {
+  const params = normalizeLaunchParamsObject(rawParams);
+  return new URLSearchParams(params).toString();
+}
 
 function buildHeaders(token, hasBody = false) {
   const headers = {};
@@ -46,6 +64,16 @@ export function getLaunchParamsString() {
   }
 
   return raw;
+}
+
+export async function getBridgeLaunchParamsString() {
+  try {
+    const params = await vkBridge.send('VKWebAppGetLaunchParams');
+    const launchParams = stringifyLaunchParams(params);
+    return launchParams.includes('sign=') ? launchParams : '';
+  } catch {
+    return '';
+  }
 }
 
 export function loadStoredCommentsAuth() {
