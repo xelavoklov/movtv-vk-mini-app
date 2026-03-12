@@ -76,6 +76,21 @@ export async function getBridgeLaunchParamsString() {
   }
 }
 
+export async function getBridgeUserProfile() {
+  try {
+    const user = await vkBridge.send('VKWebAppGetUserInfo');
+
+    return {
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      screen_name: user?.screen_name || '',
+      photo_100: user?.photo_100 || user?.photo_200 || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function loadStoredCommentsAuth() {
   try {
     const raw = window.sessionStorage.getItem(COMMENTS_AUTH_STORAGE_KEY);
@@ -93,11 +108,14 @@ export function clearCommentsAuth() {
   window.sessionStorage.removeItem(COMMENTS_AUTH_STORAGE_KEY);
 }
 
-export async function authenticateCommentsUser(launchParams) {
+export async function authenticateCommentsUser(launchParams, userProfile = null) {
   const response = await fetch(`${COMMENTS_API_BASE_URL}/auth/vk`, {
     method: 'POST',
     headers: buildHeaders('', true),
-    body: JSON.stringify({ launch_params: launchParams }),
+    body: JSON.stringify({
+      launch_params: launchParams,
+      ...(userProfile || {}),
+    }),
   });
 
   return parseResponse(response);

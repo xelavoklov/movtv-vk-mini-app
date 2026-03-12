@@ -9,6 +9,7 @@ import {
   authenticateCommentsUser,
   clearCommentsAuth,
   getBridgeLaunchParamsString,
+  getBridgeUserProfile,
   getLaunchParamsString,
   loadStoredCommentsAuth,
   storeCommentsAuth,
@@ -61,6 +62,7 @@ export const App = () => {
 
     async function loadCommentsAuth() {
       const launchParams = (await getBridgeLaunchParamsString()) || getLaunchParamsString();
+      const userProfile = await getBridgeUserProfile();
       const storedAuth = loadStoredCommentsAuth();
 
       if (!launchParams) {
@@ -82,7 +84,7 @@ export const App = () => {
       }));
 
       try {
-        const auth = await authenticateCommentsUser(launchParams);
+        const auth = await authenticateCommentsUser(launchParams, userProfile);
         if (!isMounted) {
           return;
         }
