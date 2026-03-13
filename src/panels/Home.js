@@ -16,6 +16,7 @@ import PropTypes from 'prop-types';
 
 import { getPostSenderLabel, getPostText } from '../utils/channel';
 import { FeedPostCard } from './FeedPostCard';
+import { useFeedVideoAutoplay } from './useFeedVideoAutoplay';
 
 import './feed.css';
 
@@ -23,6 +24,7 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
   const routeNavigator = useRouteNavigator();
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
+  const { registerVideo } = useFeedVideoAutoplay();
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -104,7 +106,13 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
           <div className="feed-list">
             {filteredPosts.map((post) => {
               return (
-                <FeedPostCard key={post.id} post={post} commentsAuth={commentsAuth} onOpenPost={openPost} />
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  commentsAuth={commentsAuth}
+                  onOpenPost={openPost}
+                  registerVideo={registerVideo}
+                />
               );
             })}
           </div>

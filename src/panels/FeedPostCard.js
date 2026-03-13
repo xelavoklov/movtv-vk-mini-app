@@ -13,7 +13,7 @@ import {
   getPostText,
 } from '../utils/channel';
 
-function renderFeedMedia(mediaItem) {
+function renderFeedMedia(mediaItem, registerVideo, mediaId) {
   if (mediaItem.kind === 'image') {
     return <img key={mediaItem.url} className="feed-card__media feed-card__media--image" src={mediaItem.url} alt={mediaItem.name} loading="lazy" />;
   }
@@ -22,6 +22,7 @@ function renderFeedMedia(mediaItem) {
     return (
       <div key={mediaItem.url} className="feed-card__media-shell">
         <video
+          ref={registerVideo ? registerVideo(mediaId) : undefined}
           className="feed-card__media feed-card__media--video"
           src={mediaItem.url}
           controls
@@ -48,7 +49,7 @@ function renderFeedMedia(mediaItem) {
   );
 }
 
-export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
+export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) => {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const [commentsLimit, setCommentsLimit] = useState(5);
@@ -203,7 +204,11 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
     <div ref={cardRef}>
       <Card mode="shadow" className="feed-card">
         <Div>
-        {media.length ? <div className="feed-card__media-list">{media.map(renderFeedMedia)}</div> : null}
+        {media.length ? (
+          <div className="feed-card__media-list">
+            {media.map((mediaItem, index) => renderFeedMedia(mediaItem, registerVideo, `${post.id}:${index}`))}
+          </div>
+        ) : null}
 
         <button type="button" className="feed-card__content-button" onClick={() => onOpenPost(post.id)}>
           <RichCell
@@ -301,4 +306,5 @@ FeedPostCard.propTypes = {
   }).isRequired,
   onOpenPost: PropTypes.func.isRequired,
   post: PropTypes.object.isRequired,
+  registerVideo: PropTypes.func.isRequired,
 };
