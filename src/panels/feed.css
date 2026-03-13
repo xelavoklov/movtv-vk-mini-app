@@ -172,6 +172,18 @@
   color: var(--vkui--color_text_primary);
 }
 
+.feed-card__comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.feed-card__comment-likes {
+  font-size: 13px;
+  color: var(--vkui--color_text_secondary);
+}
+
 .feed-card__comments-more {
   padding: 0;
   border: 0;

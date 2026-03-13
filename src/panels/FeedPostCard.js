@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Avatar, Button, Card, Div, FormItem, RichCell, SimpleCell, Textarea } from '@vkontakte/vkui';
+import { Avatar, Button, Card, Div, FormItem, IconButton, RichCell, SimpleCell, Textarea } from '@vkontakte/vkui';
+import { Icon16LikeOutline, Icon20LikeCircleFillRed } from '@vkontakte/icons';
 import PropTypes from 'prop-types';
 
-import { createComment, fetchComments } from '../utils';
+import { createComment, fetchComments, likeComment, unlikeComment } from '../utils';
 import {
   formatPostDate,
   getPostAvatarUrl,
@@ -50,15 +51,16 @@ function renderFeedMedia(mediaItem) {
 export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [commentsLimit, setCommentsLimit] = useState(5);
   const [commentsState, setCommentsState] = useState({
     items: [],
     total: 0,
     isLoading: false,
-    isLoaded: false,
     error: '',
   });
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [commentActionId, setCommentActionId] = useState('');
 
   const senderLabel = getPostSenderLabel(post);
   const text = getPostText(post);
@@ -69,6 +71,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
   useEffect(() => {
     const element = cardRef.current;
     if (!element) {
+      setIsVisible(true);
       return undefined;
     }
 
@@ -97,7 +100,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
     let isMounted = true;
 
     async function loadCommentsPreview() {
-      if (!isVisible || commentsState.isLoaded) {
+      if (!isVisible) {
         return;
       }
 
@@ -108,7 +111,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
       }));
 
       try {
-        const payload = await fetchComments(post.id, commentsAuth.token, { limit: 5 });
+        const payload = await fetchComments(post.id, commentsAuth.token, { limit: commentsLimit });
         if (!isMounted) {
           return;
         }
@@ -117,7 +120,6 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
           items: payload.items || [],
           total: payload.total || 0,
           isLoading: false,
-          isLoaded: true,
           error: '',
         });
       } catch (loadError) {
@@ -129,7 +131,6 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
           items: [],
           total: 0,
           isLoading: false,
-          isLoaded: true,
           error: loadError instanceof Error ? loadError.message : 'Не удалось загрузить комментарии',
         });
       }
@@ -140,15 +141,14 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
     return () => {
       isMounted = false;
     };
-  }, [commentsAuth.token, commentsState.isLoaded, isVisible, post.id]);
+  }, [commentsAuth.token, commentsLimit, isVisible, post.id]);
 
   const reloadComments = async () => {
-    const payload = await fetchComments(post.id, commentsAuth.token, { limit: 5 });
+    const payload = await fetchComments(post.id, commentsAuth.token, { limit: commentsLimit });
     setCommentsState({
       items: payload.items || [],
       total: payload.total || 0,
       isLoading: false,
-      isLoaded: true,
       error: '',
     });
   };
@@ -174,9 +174,35 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
     }
   };
 
+  const handleToggleLike = async (comment) => {
+    if (!commentsAuth.token) {
+      return;
+    }
+
+    try {
+      setCommentActionId(String(comment.id));
+
+      if (comment.is_liked_by_me) {
+        await unlikeComment(comment.id, commentsAuth.token);
+      } else {
+        await likeComment(comment.id, commentsAuth.token);
+      }
+
+      await reloadComments();
+    } catch (commentError) {
+      setCommentsState((currentState) => ({
+        ...currentState,
+        error: commentError instanceof Error ? commentError.message : 'Не удалось обновить лайк',
+      }));
+    } finally {
+      setCommentActionId('');
+    }
+  };
+
   return (
-    <Card ref={cardRef} mode="shadow" className="feed-card">
-      <Div>
+    <div ref={cardRef}>
+      <Card mode="shadow" className="feed-card">
+        <Div>
         {media.length ? <div className="feed-card__media-list">{media.map(renderFeedMedia)}</div> : null}
 
         <button type="button" className="feed-card__content-button" onClick={() => onOpenPost(post.id)}>
@@ -224,7 +250,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
             </FormItem>
           ) : null}
 
-          {commentsState.isLoading ? <div className="feed-card__comments-state">Загружаю последние 5 комментариев…</div> : null}
+          {commentsState.isLoading ? <div className="feed-card__comments-state">Загружаю комментарии…</div> : null}
           {!commentsState.isLoading && commentsState.error ? <div className="feed-card__comments-state">{commentsState.error}</div> : null}
           {!commentsState.isLoading && !commentsState.error && commentsState.items.length === 0 ? (
             <div className="feed-card__comments-state">Пока комментариев нет.</div>
@@ -234,6 +260,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
             <div className="feed-card__comments-list">
               {commentsState.items.map((comment) => {
                 const commentAuthor = [comment.user.first_name, comment.user.last_name].filter(Boolean).join(' ');
+                const isLikeActionPending = commentActionId === String(comment.id);
 
                 return (
                   <div key={comment.id} className="feed-card__comment">
@@ -242,19 +269,30 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
                       <div className="feed-card__comment-meta">{formatPostDate(comment.created_at)}</div>
                     </div>
                     <div className="feed-card__comment-body">{comment.body}</div>
+                    <div className="feed-card__comment-actions">
+                      <IconButton
+                        aria-label="Лайк"
+                        disabled={!commentsAuth.token || isLikeActionPending}
+                        onClick={() => handleToggleLike(comment)}
+                      >
+                        {comment.is_liked_by_me ? <Icon20LikeCircleFillRed /> : <Icon16LikeOutline />}
+                      </IconButton>
+                      <span className="feed-card__comment-likes">{comment.likes_count}</span>
+                    </div>
                   </div>
                 );
               })}
               {commentsState.total > commentsState.items.length ? (
-                <button type="button" className="feed-card__comments-more" onClick={() => onOpenPost(post.id)}>
-                  Открыть все комментарии ({commentsState.total})
+                <button type="button" className="feed-card__comments-more" onClick={() => setCommentsLimit((currentLimit) => currentLimit + 5)}>
+                  Показать ещё 5
                 </button>
               ) : null}
             </div>
           ) : null}
         </div>
-      </Div>
-    </Card>
+        </Div>
+      </Card>
+    </div>
   );
 };
 
