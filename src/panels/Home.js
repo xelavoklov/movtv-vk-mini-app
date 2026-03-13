@@ -2,7 +2,6 @@ import { useDeferredValue, useMemo, useState } from 'react';
 import {
   Banner,
   Button,
-  CardGrid,
   Div,
   FormItem,
   Group,
@@ -123,13 +122,13 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
 
       {!isLoading && !error && filteredPosts.length > 0 ? (
         <Group header={<Header size="s">Лента</Header>}>
-          <CardGrid size="l">
+          <div className="feed-list">
             {filteredPosts.map((post) => {
               return (
                 <FeedPostCard key={post.id} post={post} commentsAuth={commentsAuth} onOpenPost={openPost} />
               );
             })}
-          </CardGrid>
+          </div>
           <Separator />
           <Div className="feed-footer">Следующий этап: вынести данные на API или подключить пагинацию.</Div>
         </Group>

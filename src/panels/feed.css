@@ -36,6 +36,11 @@
   overflow: hidden;
 }
 
+.feed-list {
+  display: grid;
+  gap: 12px;
+}
+
 .feed-card__media-list {
   display: grid;
   gap: 12px;
