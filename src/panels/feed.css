@@ -33,17 +33,29 @@
 }
 
 .feed-card {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
 .feed-list {
   display: grid;
   gap: 12px;
+  width: 100%;
+}
+
+.feed-list > * {
+  min-width: 0;
 }
 
 .feed-card__media-list {
   display: grid;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .feed-card__media-shell {
@@ -53,6 +65,7 @@
 .feed-card__media {
   display: block;
   width: 100%;
+  max-width: 100%;
   border-radius: 16px;
   background: #dfe6f1;
 }
@@ -115,6 +128,8 @@
 .feed-card__content-button {
   display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 0;
   border: 0;
   text-align: left;
@@ -125,6 +140,8 @@
 
 .feed-card__comments {
   padding-top: 18px;
+  width: 100%;
+  min-width: 0;
 }
 
 .feed-card__comments-title {
