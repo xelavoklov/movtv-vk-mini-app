@@ -1,9 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
-  Avatar,
   Banner,
   Button,
-  Card,
   CardGrid,
   Div,
   FormItem,
@@ -13,60 +11,17 @@ import {
   Panel,
   PanelHeader,
   Placeholder,
-  RichCell,
   Separator,
-  SimpleCell,
 } from '@vkontakte/vkui';
 import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import PropTypes from 'prop-types';
 
-import {
-  formatPostDate,
-  getPostForwardInfo,
-  getPostAvatarUrl,
-  getPostMedia,
-  getPostSenderLabel,
-  getPostText,
-} from '../utils/channel';
+import { getPostSenderLabel, getPostText } from '../utils/channel';
+import { FeedPostCard } from './FeedPostCard';
 
 import './feed.css';
 
-const renderFeedMedia = (mediaItem) => {
-  if (mediaItem.kind === 'image') {
-    return <img key={mediaItem.url} className="feed-card__media feed-card__media--image" src={mediaItem.url} alt={mediaItem.name} loading="lazy" />;
-  }
-
-  if (mediaItem.kind === 'video') {
-    return (
-      <div key={mediaItem.url} className="feed-card__media-shell">
-        <video
-          className="feed-card__media feed-card__media--video"
-          src={mediaItem.url}
-          controls
-          preload="metadata"
-          playsInline
-        />
-      </div>
-    );
-  }
-
-  if (mediaItem.kind === 'audio') {
-    return (
-      <div key={mediaItem.url} className="feed-card__file">
-        <div className="feed-card__file-label">{mediaItem.label}</div>
-        <audio src={mediaItem.url} controls preload="metadata" />
-      </div>
-    );
-  }
-
-  return (
-    <a key={mediaItem.url} className="feed-card__file feed-card__file--link" href={mediaItem.url} target="_blank" rel="noreferrer">
-      {mediaItem.label}: {mediaItem.name}
-    </a>
-  );
-};
-
-export const Home = ({ id, posts, isLoading, error }) => {
+export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
   const routeNavigator = useRouteNavigator();
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -170,48 +125,8 @@ export const Home = ({ id, posts, isLoading, error }) => {
         <Group header={<Header size="s">Лента</Header>}>
           <CardGrid size="l">
             {filteredPosts.map((post) => {
-              const senderLabel = getPostSenderLabel(post);
-              const text = getPostText(post);
-              const media = getPostMedia(post);
-              const forwardInfo = getPostForwardInfo(post);
-              const avatarUrl = getPostAvatarUrl(post);
-
               return (
-                <Card key={post.id} mode="shadow" className="feed-card">
-                  <Div>
-                    <RichCell
-                      disabled
-                      before={
-                        avatarUrl ? (
-                          <Avatar size={40} src={avatarUrl} />
-                        ) : (
-                          <Avatar size={40}>{senderLabel[0]}</Avatar>
-                        )
-                      }
-                      caption={`ID ${post.id}`}
-                      subhead={formatPostDate(post.date)}
-                      after={media.length ? `${media.length} медиа` : null}
-                    >
-                      {senderLabel}
-                    </RichCell>
-
-                    {forwardInfo ? (
-                      <SimpleCell disabled subtitle={forwardInfo.dateLabel || 'Пересланное сообщение'}>
-                        Переслано от {forwardInfo.name}
-                      </SimpleCell>
-                    ) : null}
-
-                    {media.length ? <div className="feed-card__media-list">{media.map(renderFeedMedia)}</div> : null}
-
-                    <div className="feed-card__text">{text || 'Без текста'}</div>
-
-                    <div className="feed-card__actions">
-                      <Button size="m" mode="secondary" stretched onClick={() => openPost(post.id)}>
-                        Открыть пост
-                      </Button>
-                    </div>
-                  </Div>
-                </Card>
+                <FeedPostCard key={post.id} post={post} commentsAuth={commentsAuth} onOpenPost={openPost} />
               );
             })}
           </CardGrid>
@@ -224,6 +139,9 @@ export const Home = ({ id, posts, isLoading, error }) => {
 };
 
 Home.propTypes = {
+  commentsAuth: PropTypes.shape({
+    token: PropTypes.string.isRequired,
+  }).isRequired,
   id: PropTypes.string.isRequired,
   posts: PropTypes.arrayOf(PropTypes.object).isRequired,
   isLoading: PropTypes.bool.isRequired,

@@ -121,8 +121,19 @@ export async function authenticateCommentsUser(launchParams, userProfile = null)
   return parseResponse(response);
 }
 
-export async function fetchComments(postId, token = '') {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments`, {
+export async function fetchComments(postId, token = '', options = {}) {
+  const params = new URLSearchParams();
+
+  if (typeof options.limit !== 'undefined') {
+    params.set('limit', String(options.limit));
+  }
+
+  if (typeof options.offset !== 'undefined') {
+    params.set('offset', String(options.offset));
+  }
+
+  const querySuffix = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments${querySuffix}`, {
     headers: buildHeaders(token),
   });
 

@@ -124,7 +124,7 @@ export const App = () => {
     <SplitLayout>
       <SplitCol>
         <View activePanel={activePanel}>
-          <Home id="home" posts={posts} isLoading={isLoading} error={error} />
+          <Home id="home" posts={posts} isLoading={isLoading} error={error} commentsAuth={commentsAuth} />
           <Post id="post" posts={posts} isLoading={isLoading} error={error} commentsAuth={commentsAuth} />
         </View>
       </SplitCol>

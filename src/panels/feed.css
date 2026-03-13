@@ -39,7 +39,6 @@
 .feed-card__media-list {
   display: grid;
   gap: 12px;
-  padding-top: 8px;
 }
 
 .feed-card__media-shell {
@@ -106,6 +105,81 @@
 
 .feed-card__actions {
   padding-top: 16px;
+}
+
+.feed-card__content-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.feed-card__comments {
+  padding-top: 18px;
+}
+
+.feed-card__comments-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vkui--color_text_secondary);
+}
+
+.feed-card__comments-state,
+.feed-card__comment-meta {
+  font-size: 13px;
+  color: var(--vkui--color_text_secondary);
+}
+
+.feed-card__comments-state {
+  padding-top: 12px;
+}
+
+.feed-card__comments-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.feed-card__comment {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--vkui--color_background_secondary);
+}
+
+.feed-card__comment-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.feed-card__comment-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vkui--color_text_primary);
+}
+
+.feed-card__comment-body {
+  padding-top: 8px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--vkui--color_text_primary);
+}
+
+.feed-card__comments-more {
+  padding: 0;
+  border: 0;
+  text-align: left;
+  font-size: 14px;
+  color: var(--vkui--color_text_link);
+  background: transparent;
+  cursor: pointer;
 }
 
 .feed-footer {
