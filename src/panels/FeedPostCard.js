@@ -217,7 +217,6 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost }) => {
             }
             caption={`ID ${post.id}`}
             subhead={formatPostDate(post.date)}
-            after={media.length ? `${media.length} медиа` : null}
           >
             {senderLabel}
           </RichCell>

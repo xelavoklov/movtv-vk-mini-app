@@ -1,7 +1,6 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
   Banner,
-  Button,
   Div,
   FormItem,
   Group,
@@ -48,8 +47,6 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
     });
   }, [deferredQuery, posts]);
 
-  const featuredPost = filteredPosts[0];
-
   const openPost = (postId) => {
     routeNavigator.push(`/post/${postId}`);
   };
@@ -57,17 +54,6 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
   return (
     <Panel id={id}>
       <PanelHeader>movtv</PanelHeader>
-
-      <Group>
-        <Div className="feed-hero">
-          <div className="feed-hero__eyebrow">VK Mini App MVP</div>
-          <div className="feed-hero__title">Архив канала в формате мобильной ленты</div>
-          <div className="feed-hero__text">
-            Локально загружается channel.json, посты фильтруются по тексту и id, а полный пост
-            открывается отдельным экраном.
-          </div>
-        </Div>
-      </Group>
 
       <Group>
         <Banner
@@ -79,13 +65,6 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
               : isLoading
                 ? 'Читаю архив канала'
                 : `После фильтрации: ${filteredPosts.length}`
-          }
-          actions={
-            featuredPost ? (
-              <Button size="m" mode="primary" onClick={() => openPost(featuredPost.id)}>
-                Открыть первый пост
-              </Button>
-            ) : null
           }
         />
       </Group>
