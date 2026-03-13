@@ -27,10 +27,44 @@ import {
   getPostMedia,
   getPostSenderLabel,
   getPostText,
-  getPreviewText,
 } from '../utils/channel';
 
 import './feed.css';
+
+const renderFeedMedia = (mediaItem) => {
+  if (mediaItem.kind === 'image') {
+    return <img key={mediaItem.url} className="feed-card__media feed-card__media--image" src={mediaItem.url} alt={mediaItem.name} loading="lazy" />;
+  }
+
+  if (mediaItem.kind === 'video') {
+    return (
+      <div key={mediaItem.url} className="feed-card__media-shell">
+        <video
+          className="feed-card__media feed-card__media--video"
+          src={mediaItem.url}
+          controls
+          preload="metadata"
+          playsInline
+        />
+      </div>
+    );
+  }
+
+  if (mediaItem.kind === 'audio') {
+    return (
+      <div key={mediaItem.url} className="feed-card__file">
+        <div className="feed-card__file-label">{mediaItem.label}</div>
+        <audio src={mediaItem.url} controls preload="metadata" />
+      </div>
+    );
+  }
+
+  return (
+    <a key={mediaItem.url} className="feed-card__file feed-card__file--link" href={mediaItem.url} target="_blank" rel="noreferrer">
+      {mediaItem.label}: {mediaItem.name}
+    </a>
+  );
+};
 
 export const Home = ({ id, posts, isLoading, error }) => {
   const routeNavigator = useRouteNavigator();
@@ -137,67 +171,46 @@ export const Home = ({ id, posts, isLoading, error }) => {
           <CardGrid size="l">
             {filteredPosts.map((post) => {
               const senderLabel = getPostSenderLabel(post);
-              const text = getPreviewText(post, 240);
+              const text = getPostText(post);
               const media = getPostMedia(post);
               const forwardInfo = getPostForwardInfo(post);
-              const cover = media[0];
               const avatarUrl = getPostAvatarUrl(post);
 
               return (
                 <Card key={post.id} mode="shadow" className="feed-card">
-                  <button type="button" className="feed-card__button" onClick={() => openPost(post.id)}>
-                    {cover && cover.kind === 'image' ? (
-                      <img
-                        className="feed-card__cover"
-                        src={cover.url}
-                        alt={cover.name}
-                        loading="lazy"
-                      />
+                  <Div>
+                    <RichCell
+                      disabled
+                      before={
+                        avatarUrl ? (
+                          <Avatar size={40} src={avatarUrl} />
+                        ) : (
+                          <Avatar size={40}>{senderLabel[0]}</Avatar>
+                        )
+                      }
+                      caption={`ID ${post.id}`}
+                      subhead={formatPostDate(post.date)}
+                      after={media.length ? `${media.length} медиа` : null}
+                    >
+                      {senderLabel}
+                    </RichCell>
+
+                    {forwardInfo ? (
+                      <SimpleCell disabled subtitle={forwardInfo.dateLabel || 'Пересланное сообщение'}>
+                        Переслано от {forwardInfo.name}
+                      </SimpleCell>
                     ) : null}
 
-                    {cover && cover.kind === 'video' ? (
-                      <div className="feed-card__cover-shell">
-                        <video
-                          className="feed-card__cover"
-                          src={cover.url}
-                          preload="metadata"
-                          muted
-                          playsInline
-                        />
-                        <div className="feed-card__badge feed-card__badge--overlay">Видео</div>
-                      </div>
-                    ) : null}
+                    {media.length ? <div className="feed-card__media-list">{media.map(renderFeedMedia)}</div> : null}
 
-                    <Div>
-                      <RichCell
-                        disabled
-                        before={
-                          avatarUrl ? (
-                            <Avatar size={40} src={avatarUrl} />
-                          ) : (
-                            <Avatar size={40}>{senderLabel[0]}</Avatar>
-                          )
-                        }
-                        caption={`ID ${post.id}`}
-                        subhead={formatPostDate(post.date)}
-                        after={media.length ? `${media.length} медиа` : null}
-                      >
-                        {senderLabel}
-                      </RichCell>
+                    <div className="feed-card__text">{text || 'Без текста'}</div>
 
-                      {forwardInfo ? (
-                        <SimpleCell disabled subtitle={forwardInfo.dateLabel || 'Пересланное сообщение'}>
-                          Переслано от {forwardInfo.name}
-                        </SimpleCell>
-                      ) : null}
-
-                      <div className="feed-card__text">{text || 'Без текста'}</div>
-
-                      {cover && cover.kind !== 'image' && cover.kind !== 'video' ? (
-                        <div className="feed-card__badge">{cover.label}</div>
-                      ) : null}
-                    </Div>
-                  </button>
+                    <div className="feed-card__actions">
+                      <Button size="m" mode="secondary" stretched onClick={() => openPost(post.id)}>
+                        Открыть пост
+                      </Button>
+                    </div>
+                  </Div>
                 </Card>
               );
             })}
