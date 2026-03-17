@@ -167,3 +167,16 @@ export async function unlikeComment(commentId, token) {
 
   return parseResponse(response);
 }
+
+export async function fetchPostStats(postId) {
+  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/stats`);
+  return parseResponse(response);
+}
+
+export async function recordPostView(postId, token) {
+  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/view`, {
+    method: 'POST',
+    headers: buildHeaders(token),
+  });
+  return parseResponse(response);
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Avatar, Button, Card, Div, FormItem, IconButton, RichCell, SimpleCell, Textarea } from '@vkontakte/vkui';
-import { Icon16LikeOutline, Icon20LikeCircleFillRed } from '@vkontakte/icons';
+import { Icon16LikeOutline, Icon16View, Icon20LikeCircleFillRed } from '@vkontakte/icons';
 import PropTypes from 'prop-types';
 
 import { createComment, fetchComments, likeComment, unlikeComment } from '../utils';
@@ -12,6 +12,7 @@ import {
   getPostSenderLabel,
   getPostText,
 } from '../utils/channel';
+import { usePostViewTracker } from '../hooks/usePostViewTracker';
 
 function renderFeedMedia(mediaItem, registerVideo, mediaId) {
   if (mediaItem.kind === 'image') {
@@ -52,6 +53,7 @@ function renderFeedMedia(mediaItem, registerVideo, mediaId) {
 export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) => {
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
+  const viewStats = usePostViewTracker(cardRef, post.id, commentsAuth.token);
   const [commentsLimit, setCommentsLimit] = useState(5);
   const [commentsState, setCommentsState] = useState({
     items: [],
@@ -230,6 +232,13 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
             <SimpleCell disabled subtitle={forwardInfo.dateLabel || 'Пересланное сообщение'}>
               Переслано от {forwardInfo.name}
             </SimpleCell>
+          ) : null}
+
+          {viewStats !== null ? (
+            <div className="feed-card__views">
+              <Icon16View />
+              <span>{viewStats.views_total.toLocaleString('ru-RU')}</span>
+            </div>
           ) : null}
 
           <div className="feed-card__text">{text || 'Без текста'}</div>

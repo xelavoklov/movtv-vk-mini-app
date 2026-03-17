@@ -16,7 +16,7 @@ import {
   Textarea,
 } from '@vkontakte/vkui';
 import { useParams, useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
-import { Icon16LikeOutline, Icon20LikeCircleFillRed } from '@vkontakte/icons';
+import { Icon16LikeOutline, Icon16View, Icon20LikeCircleFillRed } from '@vkontakte/icons';
 import PropTypes from 'prop-types';
 
 import {
@@ -27,7 +27,7 @@ import {
   getPostSenderLabel,
   getPostText,
 } from '../utils/channel';
-import { createComment, fetchComments, likeComment, unlikeComment } from '../utils';
+import { createComment, fetchComments, fetchPostStats, likeComment, recordPostView, unlikeComment } from '../utils';
 
 import './feed.css';
 
@@ -70,6 +70,29 @@ export const Post = ({ id, posts, isLoading, error, commentsAuth }) => {
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentActionId, setCommentActionId] = useState('');
+  const [viewStats, setViewStats] = useState(null);
+
+  // Record view or fetch stats on mount
+  useEffect(() => {
+    if (!postId) return;
+    const doView = async () => {
+      try {
+        if (commentsAuth.token) {
+          const stats = await recordPostView(postId, commentsAuth.token);
+          setViewStats(stats);
+        } else {
+          const stats = await fetchPostStats(postId);
+          setViewStats(stats);
+        }
+      } catch {
+        // silently ignore – counter is non-critical
+      }
+    };
+    doView();
+  // Run once on mount per postId; token may still be loading, that's fine –
+  // the backend deduplication handles any subsequent re-records.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -219,7 +242,15 @@ export const Post = ({ id, posts, isLoading, error, commentsAuth }) => {
         <Div className="post-hero">
           <div className="post-hero__eyebrow">Детальный просмотр</div>
           <div className="post-hero__title">{senderLabel}</div>
-          <div className="post-hero__text">{formatPostDate(post.date)}</div>
+          <div className="post-hero__text">
+            {formatPostDate(post.date)}
+            {viewStats !== null ? (
+              <span className="post-views post-views--hero">
+                <Icon16View />
+                <span>{viewStats.views_total.toLocaleString('ru-RU')}</span>
+              </span>
+            ) : null}
+          </div>
         </Div>
       </Group>
 

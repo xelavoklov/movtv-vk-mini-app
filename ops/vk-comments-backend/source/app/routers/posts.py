@@ -1,14 +1,19 @@
+from datetime import date, timedelta, timezone, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.comment import Comment
 from app.models.post import Post
+from app.models.post_view import PostView
 from app.models.reaction import CommentReaction
 from app.models.user import AppUser
 from app.schemas.comment import CommentCreate, CommentListResponse, CommentOut
+from app.schemas.post import PostStatsOut
 from app.services.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(tags=["posts"])
@@ -155,3 +160,82 @@ async def create_comment(
 
     items = await _enrich_comments([comment], db, current_user)
     return items[0]
+
+
+async def _get_post_stats(db: AsyncSession, post_id: int) -> PostStatsOut:
+    """Return view counters for a post."""
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+    total_result = await db.execute(
+        select(func.count()).where(PostView.post_id == post_id)
+    )
+    views_total = total_result.scalar_one()
+
+    unique_result = await db.execute(
+        select(func.count(PostView.user_id.distinct())).where(
+            PostView.post_id == post_id,
+            PostView.viewed_at >= seven_days_ago,
+        )
+    )
+    viewers_unique_7d = unique_result.scalar_one()
+
+    return PostStatsOut(views_total=views_total, viewers_unique_7d=viewers_unique_7d)
+
+
+@router.post(
+    "/posts/{externalPostId}/view",
+    response_model=PostStatsOut,
+    status_code=status.HTTP_200_OK,
+    summary="Засчитать просмотр поста",
+)
+async def record_post_view(
+    externalPostId: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: AppUser = Depends(get_current_user),
+):
+    """
+    Записывает просмотр поста текущим пользователем.
+
+    Дедупликация: один пользователь может засчитать не более одного просмотра
+    на один пост за одну ISO-календарную неделю (≈7 дней).
+    Использует INSERT … ON CONFLICT DO NOTHING, безопасно при параллельных запросах.
+    Возвращает актуальные счётчики поста.
+    """
+    post = await _get_or_404_post(db, externalPostId)
+
+    # ISO week start (Monday) as the dedup bucket
+    today = date.today()
+    week_bucket = today - timedelta(days=today.weekday())
+
+    stmt = (
+        pg_insert(PostView)
+        .values(
+            post_id=post.id,
+            user_id=current_user.id,
+            week_bucket=week_bucket,
+        )
+        .on_conflict_do_nothing(
+            index_elements=["post_id", "user_id", "week_bucket"]
+        )
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+    return await _get_post_stats(db, post.id)
+
+
+@router.get(
+    "/posts/{externalPostId}/stats",
+    response_model=PostStatsOut,
+    summary="Получить счётчики просмотров поста",
+)
+async def get_post_stats(
+    externalPostId: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Возвращает счётчики просмотров поста без записи нового просмотра.
+    Доступен без авторизации.
+    """
+    post = await _get_or_404_post(db, externalPostId)
+    return await _get_post_stats(db, post.id)

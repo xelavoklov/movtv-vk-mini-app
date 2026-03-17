@@ -4,6 +4,11 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class PostStatsOut(BaseModel):
+    views_total: int
+    viewers_unique_7d: int
+
+
 class PostOut(BaseModel):
     id: int
     external_post_id: int
