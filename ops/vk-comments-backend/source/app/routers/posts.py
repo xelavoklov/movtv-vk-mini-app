@@ -1,4 +1,4 @@
-from datetime import date, timedelta, timezone, datetime
+from datetime import date, timedelta, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select, text
@@ -164,7 +164,7 @@ async def create_comment(
 
 async def _get_post_stats(db: AsyncSession, post_id: int) -> PostStatsOut:
     """Return view counters for a post."""
-    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
 
     total_result = await db.execute(
         select(func.count()).where(PostView.post_id == post_id)

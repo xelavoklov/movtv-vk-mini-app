@@ -72,27 +72,32 @@ export const Post = ({ id, posts, isLoading, error, commentsAuth }) => {
   const [commentActionId, setCommentActionId] = useState('');
   const [viewStats, setViewStats] = useState(null);
 
-  // Record view or fetch stats on mount
+  // If auth appears after the panel has already mounted, retry with POST /view.
   useEffect(() => {
     if (!postId) return;
+
+    let isCancelled = false;
+
     const doView = async () => {
       try {
-        if (commentsAuth.token) {
-          const stats = await recordPostView(postId, commentsAuth.token);
-          setViewStats(stats);
-        } else {
-          const stats = await fetchPostStats(postId);
+        const stats = commentsAuth.token
+          ? await recordPostView(postId, commentsAuth.token)
+          : await fetchPostStats(postId);
+
+        if (!isCancelled) {
           setViewStats(stats);
         }
       } catch {
         // silently ignore – counter is non-critical
       }
     };
+
     doView();
-  // Run once on mount per postId; token may still be loading, that's fine –
-  // the backend deduplication handles any subsequent re-records.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [commentsAuth.token, postId]);
 
   useEffect(() => {
     let isMounted = true;
