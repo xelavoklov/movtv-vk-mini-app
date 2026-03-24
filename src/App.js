@@ -67,7 +67,7 @@ export const App = () => {
 
       if (!launchParams) {
         setCommentsAuth({
-          token: storedAuth?.token || '',
+          token: storedAuth?.access_token || '',
           user: storedAuth || null,
           isLoading: false,
           error: '',
