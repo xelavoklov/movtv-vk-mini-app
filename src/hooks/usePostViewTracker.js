@@ -8,8 +8,25 @@ import { fetchPostStats, recordPostView } from '../utils/comments';
  */
 const sentPostIds = new Set();
 
-const VISIBILITY_THRESHOLD = 0.7; // 70 % of the card must be in viewport
+const VISIBILITY_THRESHOLD = 0.7; // 70 % of the visible target area must be on screen
 const VIEW_DELAY_MS = 5_000;      // 5 seconds of continuous visibility
+
+function isElementVisibleEnough(element) {
+  const rect = element.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+  if (viewportHeight <= 0 || rect.height <= 0) {
+    return false;
+  }
+
+  const visibleTop = Math.max(rect.top, 0);
+  const visibleBottom = Math.min(rect.bottom, viewportHeight);
+  const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+  // For tall cards, require 70% of the viewport instead of 70% of the whole card.
+  const targetVisibleHeight = Math.min(rect.height, viewportHeight) * VISIBILITY_THRESHOLD;
+  return visibleHeight >= targetVisibleHeight;
+}
 
 /**
  * usePostViewTracker
@@ -85,22 +102,8 @@ export function usePostViewTracker(elementRef, postId, token) {
       }, VIEW_DELAY_MS);
     };
 
-    const viewObserver = new IntersectionObserver(
-      ([entry]) => {
-        isVisible = entry.intersectionRatio >= VISIBILITY_THRESHOLD;
-        if (isVisible) {
-          startTimer();
-        } else {
-          clearTimer();
-        }
-      },
-      { threshold: VISIBILITY_THRESHOLD },
-    );
-
-    viewObserver.observe(element);
-
-    // Scroll resets the timer (timer restarts so the 5s is always uninterrupted)
-    const handleScroll = () => {
+    const syncVisibility = () => {
+      isVisible = isElementVisibleEnough(element);
       if (isVisible) {
         startTimer();
       } else {
@@ -108,12 +111,34 @@ export function usePostViewTracker(elementRef, postId, token) {
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    const viewObserver = new IntersectionObserver(
+      () => {
+        syncVisibility();
+      },
+      {
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+        rootMargin: '0px',
+      },
+    );
+
+    viewObserver.observe(element);
+    syncVisibility();
+
+    // Scroll and resize reset the timer so the 5s is always uninterrupted.
+    const handleViewportChange = () => {
+      syncVisibility();
+    };
+
+    window.addEventListener('scroll', handleViewportChange, { passive: true });
+    window.addEventListener('resize', handleViewportChange);
+    document.addEventListener('visibilitychange', handleViewportChange);
 
     return () => {
       clearTimer();
       viewObserver.disconnect();
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleViewportChange);
+      window.removeEventListener('resize', handleViewportChange);
+      document.removeEventListener('visibilitychange', handleViewportChange);
     };
   }, [elementRef, postId, token]);
 
