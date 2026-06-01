@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Avatar, Button, Card, Div, FormItem, IconButton, RichCell, SimpleCell, Textarea } from '@vkontakte/vkui';
-import { Icon16LikeOutline, Icon16View, Icon20LikeCircleFillRed } from '@vkontakte/icons';
+import { Avatar, Button, Card, Div, RichCell, SimpleCell } from '@vkontakte/vkui';
+import { Icon16CommentOutline, Icon16View } from '@vkontakte/icons';
 import PropTypes from 'prop-types';
 
-import { createComment, fetchComments, likeComment, unlikeComment } from '../utils';
+import { fetchComments } from '../utils';
 import {
   formatPostDate,
   getPostAvatarUrl,
@@ -54,16 +54,11 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
   const cardRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const viewStats = usePostViewTracker(cardRef, post.id, commentsAuth.token);
-  const [commentsLimit, setCommentsLimit] = useState(5);
   const [commentsState, setCommentsState] = useState({
-    items: [],
     total: 0,
     isLoading: false,
     error: '',
   });
-  const [newComment, setNewComment] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [commentActionId, setCommentActionId] = useState('');
 
   const senderLabel = getPostSenderLabel(post);
   const text = getPostText(post);
@@ -114,13 +109,13 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
       }));
 
       try {
-        const payload = await fetchComments(post.id, commentsAuth.token, { limit: commentsLimit });
+        // We only need total comments in the feed. Full list opens in a bottom sheet.
+        const payload = await fetchComments(post.id, commentsAuth.token, { limit: 1 });
         if (!isMounted) {
           return;
         }
 
         setCommentsState({
-          items: payload.items || [],
           total: payload.total || 0,
           isLoading: false,
           error: '',
@@ -131,7 +126,6 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
         }
 
         setCommentsState({
-          items: [],
           total: 0,
           isLoading: false,
           error: loadError instanceof Error ? loadError.message : 'Не удалось загрузить комментарии',
@@ -144,63 +138,7 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
     return () => {
       isMounted = false;
     };
-  }, [commentsAuth.token, commentsLimit, isVisible, post.id]);
-
-  const reloadComments = async () => {
-    const payload = await fetchComments(post.id, commentsAuth.token, { limit: commentsLimit });
-    setCommentsState({
-      items: payload.items || [],
-      total: payload.total || 0,
-      isLoading: false,
-      error: '',
-    });
-  };
-
-  const handleSubmitComment = async () => {
-    const body = newComment.trim();
-    if (!body || !commentsAuth.token) {
-      return;
-    }
-
-    try {
-      setIsSubmittingComment(true);
-      await createComment(post.id, body, commentsAuth.token);
-      setNewComment('');
-      await reloadComments();
-    } catch (submitError) {
-      setCommentsState((currentState) => ({
-        ...currentState,
-        error: submitError instanceof Error ? submitError.message : 'Не удалось отправить комментарий',
-      }));
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  const handleToggleLike = async (comment) => {
-    if (!commentsAuth.token) {
-      return;
-    }
-
-    try {
-      setCommentActionId(String(comment.id));
-
-      if (comment.is_liked_by_me) {
-        await unlikeComment(comment.id, commentsAuth.token);
-      } else {
-        await likeComment(comment.id, commentsAuth.token);
-      }
-
-      await reloadComments();
-    } catch (commentError) {
-      setCommentsState((currentState) => ({
-        ...currentState,
-        error: commentError instanceof Error ? commentError.message : 'Не удалось обновить лайк',
-      }));
-    } finally {
-      setCommentActionId('');
-    }
-  };
+  }, [commentsAuth.token, isVisible, post.id]);
 
   return (
     <div ref={cardRef}>
@@ -246,62 +184,18 @@ export const FeedPostCard = ({ post, commentsAuth, onOpenPost, registerVideo }) 
 
         <div className="feed-card__comments">
           <div className="feed-card__comments-title">Комментарии</div>
-
-          {commentsAuth.token ? (
-            <FormItem top="Новый комментарий">
-              <Textarea
-                value={newComment}
-                onChange={(event) => setNewComment(event.target.value)}
-                placeholder="Напишите комментарий к этому посту"
-                maxLength={4000}
-              />
-              <Div className="feed-card__actions">
-                <Button size="m" onClick={handleSubmitComment} disabled={!newComment.trim() || isSubmittingComment}>
-                  {isSubmittingComment ? 'Отправляю…' : 'Отправить'}
-                </Button>
-              </Div>
-            </FormItem>
-          ) : null}
-
-          {commentsState.isLoading ? <div className="feed-card__comments-state">Загружаю комментарии…</div> : null}
+          <Div className="feed-card__actions">
+            <Button size="m" mode="secondary" stretched onClick={() => onOpenPost(post.id, 'comments')}>
+              <span className="feed-card__comments-button-content">
+                <Icon16CommentOutline />
+                <span>Комментарии</span>
+                {!commentsState.isLoading && commentsState.total > 0 ? (
+                  <span className="feed-card__comments-count">{commentsState.total}</span>
+                ) : null}
+              </span>
+            </Button>
+          </Div>
           {!commentsState.isLoading && commentsState.error ? <div className="feed-card__comments-state">{commentsState.error}</div> : null}
-          {!commentsState.isLoading && !commentsState.error && commentsState.items.length === 0 ? (
-            <div className="feed-card__comments-state">Пока комментариев нет.</div>
-          ) : null}
-
-          {!commentsState.isLoading && !commentsState.error && commentsState.items.length > 0 ? (
-            <div className="feed-card__comments-list">
-              {commentsState.items.map((comment) => {
-                const commentAuthor = [comment.user.first_name, comment.user.last_name].filter(Boolean).join(' ');
-                const isLikeActionPending = commentActionId === String(comment.id);
-
-                return (
-                  <div key={comment.id} className="feed-card__comment">
-                    <div className="feed-card__comment-header">
-                      <div className="feed-card__comment-name">{commentAuthor || `VK ${comment.user.vk_user_id}`}</div>
-                      <div className="feed-card__comment-meta">{formatPostDate(comment.created_at)}</div>
-                    </div>
-                    <div className="feed-card__comment-body">{comment.body}</div>
-                    <div className="feed-card__comment-actions">
-                      <IconButton
-                        aria-label="Лайк"
-                        disabled={!commentsAuth.token || isLikeActionPending}
-                        onClick={() => handleToggleLike(comment)}
-                      >
-                        {comment.is_liked_by_me ? <Icon20LikeCircleFillRed /> : <Icon16LikeOutline />}
-                      </IconButton>
-                      <span className="feed-card__comment-likes">{comment.likes_count}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {commentsState.total > commentsState.items.length ? (
-                <button type="button" className="feed-card__comments-more" onClick={() => setCommentsLimit((currentLimit) => currentLimit + 5)}>
-                  Показать ещё 5
-                </button>
-              ) : null}
-            </div>
-          ) : null}
         </div>
         </Div>
       </Card>

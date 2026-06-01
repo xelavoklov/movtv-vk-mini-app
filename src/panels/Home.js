@@ -15,6 +15,7 @@ import { useRouteNavigator } from '@vkontakte/vk-mini-apps-router';
 import PropTypes from 'prop-types';
 
 import { getPostSenderLabel, getPostText } from '../utils/channel';
+import { CommentsSheet } from './CommentsSheet';
 import { FeedPostCard } from './FeedPostCard';
 import { useFeedVideoAutoplay } from './useFeedVideoAutoplay';
 
@@ -23,6 +24,7 @@ import './feed.css';
 export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
   const routeNavigator = useRouteNavigator();
   const [query, setQuery] = useState('');
+  const [activeCommentsPostId, setActiveCommentsPostId] = useState(null);
   const deferredQuery = useDeferredValue(query);
   const { registerVideo } = useFeedVideoAutoplay();
 
@@ -49,7 +51,12 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
     });
   }, [deferredQuery, posts]);
 
-  const openPost = (postId) => {
+  const openPost = (postId, target = 'post') => {
+    if (target === 'comments') {
+      setActiveCommentsPostId(postId);
+      return;
+    }
+
     routeNavigator.push(`/post/${postId}`);
   };
 
@@ -119,6 +126,14 @@ export const Home = ({ id, posts, isLoading, error, commentsAuth }) => {
           <Separator />
           <Div className="feed-footer">Следующий этап: вынести данные на API или подключить пагинацию.</Div>
         </Group>
+      ) : null}
+
+      {activeCommentsPostId !== null ? (
+        <CommentsSheet
+          postId={activeCommentsPostId}
+          commentsAuth={commentsAuth}
+          onClose={() => setActiveCommentsPostId(null)}
+        />
       ) : null}
     </Panel>
   );
