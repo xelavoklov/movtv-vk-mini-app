@@ -45,7 +45,13 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "development"
     DEBUG: bool = False
-    CORS_ORIGINS: str = "https://vk.com,https://m.vk.com"
+    CORS_ORIGINS: str = (
+        "https://vk.com,https://m.vk.com,https://xelavoklov.github.io,"
+        "http://localhost:5173,http://127.0.0.1:5173"
+    )
+
+    # Covers production mini-app origins like https://<app-id>.vk-apps.com
+    CORS_ORIGIN_REGEX: str = r"https://([a-zA-Z0-9-]+\.)?vk-apps\.com"
 
     @computed_field  # type: ignore[misc]
     @property

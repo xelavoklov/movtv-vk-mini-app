@@ -1,5 +1,5 @@
-const CHANNEL_URL = 'channel.json';
-const MEDIA_BASE_URL = 'https://xelavoklov.github.io/movtv/media';
+const CHANNEL_URL = '/channel.json';
+const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL || 'https://xelavoklov.github.io/movtv/media';
 
 const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp)$/i;
 const VIDEO_EXTENSIONS = /\.(mp4|webm|mov|m4v|ogg)$/i;
@@ -7,7 +7,15 @@ const AUDIO_EXTENSIONS = /\.(mp3|wav|ogg|m4a|oga)$/i;
 const PDF_EXTENSION = /\.pdf$/i;
 
 function buildPublicMediaUrl(path) {
-  return encodeURI(`${MEDIA_BASE_URL}/${path}`);
+  if (!path) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return encodeURI(`${MEDIA_BASE_URL}/${String(path).replace(/^\/+/, '')}`);
 }
 
 function isPlaceholder(value) {

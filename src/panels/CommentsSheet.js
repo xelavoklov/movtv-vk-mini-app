@@ -149,6 +149,9 @@ export const CommentsSheet = ({ postId, commentsAuth, onClose }) => {
                 placeholder="Напишите комментарий к этому посту"
                 maxLength={4000}
               />
+              {!commentsState.isLoading && commentsState.error ? (
+                <Div className="comments-state">Ошибка API: {commentsState.error}</Div>
+              ) : null}
               <Div className="comments-compose__actions">
                 <Button size="m" onClick={handleSubmitComment} disabled={!newComment.trim() || isSubmittingComment}>
                   {isSubmittingComment ? 'Отправляю…' : 'Отправить'}

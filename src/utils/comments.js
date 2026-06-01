@@ -3,6 +3,18 @@ import vkBridge from '@vkontakte/vk-bridge';
 const COMMENTS_API_BASE_URL = import.meta.env.VITE_COMMENTS_API_URL || 'https://movtv.fun/api/v1';
 const COMMENTS_AUTH_STORAGE_KEY = 'movtv-comments-auth';
 
+class CommentsApiError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.name = 'CommentsApiError';
+    this.status = options.status || 0;
+    this.detail = options.detail || '';
+    this.url = options.url || '';
+    this.method = options.method || 'GET';
+    this.kind = options.kind || 'api';
+  }
+}
+
 function normalizeLaunchParamsObject(rawParams) {
   return Object.entries(rawParams || {}).reduce((result, [key, value]) => {
     if (typeof value === 'undefined' || value === null) {
@@ -33,7 +45,7 @@ function buildHeaders(token, hasBody = false) {
   return headers;
 }
 
-async function parseResponse(response) {
+async function parseResponse(response, requestInfo = {}) {
   if (response.ok) {
     if (response.status === 204) {
       return null;
@@ -42,18 +54,78 @@ async function parseResponse(response) {
     return response.json();
   }
 
-  let message = `HTTP ${response.status}`;
+  let detail = '';
 
   try {
     const payload = await response.json();
     if (payload?.detail) {
-      message = payload.detail;
+      detail = payload.detail;
     }
   } catch {
     // Ignore invalid JSON bodies.
   }
 
-  throw new Error(message);
+  const message = detail ? `API ${response.status}: ${detail}` : `API ${response.status}: ошибка сервера комментариев`;
+  throw new CommentsApiError(message, {
+    status: response.status,
+    detail,
+    url: requestInfo.url || response.url || '',
+    method: requestInfo.method || 'GET',
+    kind: 'api',
+  });
+}
+
+function normalizeRequestError(error, requestInfo = {}) {
+  if (error instanceof CommentsApiError) {
+    return error;
+  }
+
+  if (error instanceof TypeError) {
+    return new CommentsApiError(
+      'Сеть/CORS: не удалось подключиться к API комментариев. Проверь сервер и CORS.',
+      {
+        url: requestInfo.url || '',
+        method: requestInfo.method || 'GET',
+        kind: 'network',
+      },
+    );
+  }
+
+  return new CommentsApiError(
+    error instanceof Error ? error.message : 'Неизвестная ошибка комментариев',
+    {
+      url: requestInfo.url || '',
+      method: requestInfo.method || 'GET',
+      kind: 'unknown',
+    },
+  );
+}
+
+function logRequestError(error) {
+  console.error('[comments-api]', {
+    kind: error.kind,
+    status: error.status,
+    detail: error.detail,
+    method: error.method,
+    url: error.url,
+    message: error.message,
+  });
+}
+
+async function requestJson(url, init = {}) {
+  const requestInfo = {
+    url,
+    method: init.method || 'GET',
+  };
+
+  try {
+    const response = await fetch(url, init);
+    return await parseResponse(response, requestInfo);
+  } catch (error) {
+    const normalizedError = normalizeRequestError(error, requestInfo);
+    logRequestError(normalizedError);
+    throw normalizedError;
+  }
 }
 
 export function getLaunchParamsString() {
@@ -109,7 +181,7 @@ export function clearCommentsAuth() {
 }
 
 export async function authenticateCommentsUser(launchParams, userProfile = null) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/auth/vk`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/auth/vk`, {
     method: 'POST',
     headers: buildHeaders('', true),
     body: JSON.stringify({
@@ -117,8 +189,6 @@ export async function authenticateCommentsUser(launchParams, userProfile = null)
       ...(userProfile || {}),
     }),
   });
-
-  return parseResponse(response);
 }
 
 export async function fetchComments(postId, token = '', options = {}) {
@@ -133,50 +203,40 @@ export async function fetchComments(postId, token = '', options = {}) {
   }
 
   const querySuffix = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments${querySuffix}`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments${querySuffix}`, {
     headers: buildHeaders(token),
   });
-
-  return parseResponse(response);
 }
 
 export async function createComment(postId, body, token) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/posts/${postId}/comments`, {
     method: 'POST',
     headers: buildHeaders(token, true),
     body: JSON.stringify({ body }),
   });
-
-  return parseResponse(response);
 }
 
 export async function likeComment(commentId, token) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/comments/${commentId}/like`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/comments/${commentId}/like`, {
     method: 'POST',
     headers: buildHeaders(token),
   });
-
-  return parseResponse(response);
 }
 
 export async function unlikeComment(commentId, token) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/comments/${commentId}/like`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/comments/${commentId}/like`, {
     method: 'DELETE',
     headers: buildHeaders(token),
   });
-
-  return parseResponse(response);
 }
 
 export async function fetchPostStats(postId) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/stats`);
-  return parseResponse(response);
+  return requestJson(`${COMMENTS_API_BASE_URL}/posts/${postId}/stats`);
 }
 
 export async function recordPostView(postId, token) {
-  const response = await fetch(`${COMMENTS_API_BASE_URL}/posts/${postId}/view`, {
+  return requestJson(`${COMMENTS_API_BASE_URL}/posts/${postId}/view`, {
     method: 'POST',
     headers: buildHeaders(token),
   });
-  return parseResponse(response);
 }
